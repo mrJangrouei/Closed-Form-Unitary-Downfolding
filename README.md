@@ -1,38 +1,36 @@
 # Closed-Form Unitary Downfolding (CFU) + LP-BLISS for Low-Norm Fermionic Hamiltonians
 
-This repository contains a compact research implementation of the **Closed-Form Unitary (CFU) downfolding** framework and the **Linear-Programming Block-Invariant Symmetry Shift (LP-BLISS)**, developed to construct *spectrally compressed, low–1-norm Hamiltonians* for resource-efficient quantum simulation.
+This repository contains a compact research implementation of **Closed-Form Unitary (CFU) downfolding**, **Linear-Programming Block-Invariant Symmetry Shift (LP-BLISS)**, and active-space Hamiltonian construction for resource-efficient quantum simulation of fermionic systems.
 
-This code accompanies:
+The code accompanies:
 
 **M. R. Jangrouei**  
 *Closed-Form Unitary Downfolding for Resource-Efficient Fermionic Hamiltonian Simulation on Quantum Computers.*
 
 ---
 
-## 🔍 Overview
+## Overview
 
-Fault-tolerant quantum algorithms such as **Qubitized Quantum Phase Estimation (QPE)** require expressing the electronic Hamiltonian as a **Linear Combination of Unitaries (LCU)**. The **LCU 1-norm** directly determines the query complexity and therefore the quantum resources required.
+Fault-tolerant quantum algorithms such as **qubitized quantum phase estimation (QPE)** require expressing the electronic Hamiltonian as a **linear combination of unitaries (LCU)**. The LCU 1-norm strongly affects the query complexity and therefore the quantum resources required.
 
-This repository implements a two-stage compression pipeline:
+This repository implements and compares several Hamiltonian-compression strategies based on:
 
-### **1. Closed-Form Unitary (CFU) Downfolding**
-- Partitions orbitals into **internal** (active) and **external** subspaces.  
-- Applies analytically solvable unitary transformations using closed-form BCH expansions.  
-- Iteratively suppresses internal–external entanglement.  
-- Constructs a spectrally compressed, active-space effective Hamiltonian \( \hat{H}_{\mathrm{eff}} \).  
-- Controls operator growth using Frobenius-norm–bounded pruning.
+1. **Closed-form unitary transformations**
+2. **LP-BLISS symmetry-preserving LCU minimization**
+3. **Frobenius-norm-controlled pruning**
+4. **External-space projection / active-space downfolding**
 
-### **2. LP-BLISS LCU Minimization**
-- Optimizes a number-conserving BLISS operator via **linear programming**:
-  \[
-      \min_{\theta} \|\mathbf{b} - A\theta\|_1
-  \]
-- Achieves **significant LCU 1-norm reduction** while preserving the spectrum in the desired electron-number sector.  
-- Pushes beyond traditional spectral-range limits when combined with CFU.
+The overall goal is to construct compact effective Hamiltonians that preserve the relevant low-energy physics while reducing operator norm, term count, and simulation cost.
 
 ---
 
-## 📁 File Structure
+## Repository Components
 
-This implementation is intentionally lightweight:
+The repository contains five main components:
 
+```text
+1. Manuscript / theory draft
+2. Baseline CFU transformation code
+3. CFU + LP-BLISS code
+4. CFU + LP-BLISS + Frobenius truncation code
+5. Downfolding / active-space projection code
