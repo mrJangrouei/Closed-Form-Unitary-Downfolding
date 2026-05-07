@@ -1,6 +1,6 @@
 # Closed-Form Unitary Downfolding (CFU) + LP-BLISS for Low-Norm Fermionic Hamiltonians
 
-This repository contains a compact research implementation of **Closed-Form Unitary (CFU) downfolding**, **Linear-Programming Block-Invariant Symmetry Shift (LP-BLISS)**, and **active-space Hamiltonian construction** for resource-efficient quantum simulation of fermionic systems.
+This repository contains a compact research implementation of **Closed-Form Unitary (CFU) downfolding**, **Linear-Programming Block-Invariant Symmetry Shift (LP-BLISS)**, and **active-space Hamiltonian construction** for resource-efficient fermionic quantum simulation.
 
 The code accompanies:
 
@@ -9,42 +9,54 @@ The code accompanies:
 
 ---
 
-## Overview
+## What This Repository Does
 
-Fault-tolerant quantum algorithms such as **qubitized quantum phase estimation (QPE)** require expressing the electronic Hamiltonian as a **linear combination of unitaries (LCU)**. The LCU 1-norm strongly affects the query complexity and therefore the quantum resources required.
+Fault-tolerant algorithms such as **qubitized quantum phase estimation (QPE)** require the electronic Hamiltonian to be represented as a **linear combination of unitaries (LCU)**. The LCU 1-norm strongly affects query complexity and therefore quantum resource estimates.
 
-This repository implements and compares several Hamiltonian-compression strategies based on:
+This repository explores ways to compress fermionic Hamiltonians before quantum simulation. The main ingredients are:
 
-1. **Closed-form unitary transformations**
-2. **LP-BLISS symmetry-preserving LCU minimization**
-3. **Frobenius-norm-controlled pruning**
-4. **External-space projection / active-space downfolding**
+1. **Closed-form unitary transformations** to reduce undesired couplings.
+2. **LP-BLISS symmetry shifts** to reduce the Hamiltonian 1-norm without changing the target electron-number-sector spectrum.
+3. **Frobenius-norm pruning** to remove small terms with controlled discarded norm.
+4. **Active-space downfolding** to project the transformed Hamiltonian into a smaller internal orbital space.
 
-The overall goal is to construct compact effective Hamiltonians that preserve the relevant low-energy physics while reducing operator norm, term count, and quantum simulation cost.
+The final goal is to obtain a compact active-space Hamiltonian with reduced term count, reduced coefficient 1-norm, and preserved physically relevant spectral information.
 
 ---
 
-## Repository Components
+## Quick Start
 
-The repository contains five main components:
+A typical workflow has two stages.
 
-```text
-1. Manuscript / theory draft
-2. Baseline CFU transformation code
-3. CFU + LP-BLISS transformation code
-4. CFU + LP-BLISS + Frobenius truncation transformation code
-5. Downfolding / active-space projection code
+### Stage 1: Choose one transformation script
+
+Run **one** of the following transformation pipelines:
+
+| Option | Script | What it does |
+|---|---|---|
+| A | `cfu_transform.py` | Baseline closed-form unitary transformation. |
+| B | `cfu_lp_bliss.py` | CFU transformation plus LP-BLISS compression. |
+| C | `cfu_lp_bliss_frobenius.py` | CFU plus LP-BLISS plus Frobenius-norm pruning. |
+
+For example:
+
+```bash
+python cfu_transform.py
 ```
 
-The computational workflow is modular. First, the user chooses **one of the three transformation pipelines**:
+or
 
-```text
-Option A: Baseline CFU
-Option B: CFU + LP-BLISS
-Option C: CFU + LP-BLISS + Frobenius truncation
+```bash
+python cfu_lp_bliss.py
 ```
 
-Each transformation option produces a transformed full-space fermionic Hamiltonian, for example:
+or
+
+```bash
+python cfu_lp_bliss_frobenius.py
+```
+
+Each script produces transformed full-space Hamiltonians such as:
 
 ```text
 hamiltonian_ST_minE_transformed-1.pkl
@@ -53,147 +65,119 @@ hamiltonian_ST_minE_transformed-2.pkl
 hamiltonian_ST_minE_transformed-k.pkl
 ```
 
-After this transformation step, the resulting Hamiltonian can be passed to the standalone downfolding script. The downfolding code contracts the selected external spin orbitals with a fixed Hartree-Fock occupation pattern and produces an active-space effective Hamiltonian.
+### Stage 2: Downfold the transformed Hamiltonian
 
-The intended workflow is therefore:
+After generating a transformed Hamiltonian, pass it to the downfolding script:
 
-```text
-Choose one transformation version
-        |
-        v
-Generate transformed full-space Hamiltonian
-        |
-        v
-Run downfolding code
-        |
-        v
-Obtain active-space Hamiltonian
+```bash
+python downfold.py
 ```
 
-The three transformation scripts differ only in how the full-space Hamiltonian is compressed before downfolding. The downfolding code can be used after any of them.
+The downfolding script projects out the external spin orbitals and saves the active-space Hamiltonian as:
 
----
+```text
+downfolded_hamiltonian.pkl
+```
 
-## Workflow Summary
-
-A typical calculation proceeds as follows:
+The workflow is therefore:
 
 ```text
 Input full-space Hamiltonian
         |
         v
-Closed-form unitary transformation
-        |
-        v
-Optional LP-BLISS compression
-        |
-        v
-Optional Frobenius-norm truncation
+Choose one transformation pipeline
         |
         v
 Transformed full-space Hamiltonian
         |
         v
-External-space HF projection
+Downfolding / external HF projection
         |
         v
-Downfolded active-space Hamiltonian
+Active-space effective Hamiltonian
 ```
 
-In formula form, the transformation stage produces a full-space Hamiltonian
+---
+
+## Repository Layout
+
+| File | Purpose |
+|---|---|
+| `paper.tex` | Manuscript and theory draft. |
+| `cfu_transform.py` | Baseline CFU transformation. |
+| `cfu_lp_bliss.py` | CFU transformation with LP-BLISS compression. |
+| `cfu_lp_bliss_frobenius.py` | CFU transformation with LP-BLISS and Frobenius-norm pruning. |
+| `downfold.py` | Projects a transformed full-space Hamiltonian into an active-space Hamiltonian. |
+| `hamiltonian_ST.pkl` | Input full-space OpenFermion `FermionOperator`. |
+| `hamiltonian_ST_minE_transformed-k.pkl` | Transformed Hamiltonian after `k` unitary steps. |
+| `downfolded_hamiltonian.pkl` | Final active-space downfolded Hamiltonian. |
+
+---
+
+## Method Overview
+
+The transformation scripts generate a full-space transformed Hamiltonian,
 
 ```math
 \bar{H} = U H U^\dagger,
 ```
 
-where `U` is generated by a sequence of closed-form unitary rotations.
+where `U` is built from a sequence of closed-form unitary rotations.
 
-The downfolding stage then constructs
+The downfolding script then constructs an active-space Hamiltonian by contracting the external spin orbitals with a fixed Hartree-Fock occupation pattern:
 
 ```math
 H_{\mathrm{eff}}
 =
 \langle \phi_{\mathrm{ext}}^0 |
 \bar{H}
-| \phi_{\mathrm{ext}}^0 \rangle_{\mathrm{ext}},
+| \phi_{\mathrm{ext}}^0 \rangle_{\mathrm{ext}}.
 ```
 
-where `|phi_ext^0>` is the fixed external Hartree-Fock occupation pattern.
-
-The final Hamiltonian `H_eff` acts only on the chosen internal or active spin-orbital space.
+The resulting `H_eff` acts only on the selected internal spin orbitals.
 
 ---
 
-## 1. Manuscript / Theory Draft
+## Transformation Pipelines
 
-Suggested file:
-
-```text
-paper.tex
-```
-
-The LaTeX manuscript describes the theoretical background and motivation behind the method, including:
-
-- unitary Hamiltonian downfolding,
-- active/external orbital partitioning,
-- closed-form unitary transformations,
-- BCH-inspired similarity transformations,
-- projective amplitude ideas,
-- DUCC-style effective Hamiltonians,
-- benchmark calculations for small hydrogen systems.
-
-This file is not an executable script. It provides the scientific context for the implementation.
-
----
-
-## 2. Baseline CFU Transformation
-
-Suggested file:
+The three transformation scripts form a hierarchy:
 
 ```text
-cfu_transform.py
+Baseline CFU
+    -> CFU + LP-BLISS
+        -> CFU + LP-BLISS + Frobenius truncation
 ```
 
-This is the core implementation of the iterative closed-form unitary transformation.
+### 1. Baseline CFU: `cfu_transform.py`
 
-It loads a fermionic Hamiltonian stored as an OpenFermion `FermionOperator`, builds a pool of fermionic excitation generators, chooses the generator with the steepest energy gradient, applies an analytically optimized unitary transformation, and saves the transformed Hamiltonian after each step.
+This is the core closed-form unitary transformation script.
 
-This version performs the closed-form unitary transformation only. It does **not** include LP-BLISS or Frobenius-norm pruning.
-
-### Main Features
-
-- Loads a Hamiltonian from a pickle file, for example:
-
-```text
-hamiltonian_ST.pkl
-```
-
-- Uses OpenFermion `FermionOperator` objects.
-- Uses a Hartree-Fock determinant as the reference state.
-- Builds a generator pool from Hamiltonian terms.
-- Includes single and double fermionic excitation generators.
-- Removes generators acting only inside the specified internal orbital set.
-- Selects the generator with the largest energy gradient magnitude.
-- Performs an analytic line search for the optimal rotation angle.
-- Applies the closed-form similarity transformation.
-- Optionally applies rank-based `n`-body truncation.
-- Saves each transformed Hamiltonian as a pickle file.
-
-The transformation has the form
+It performs the iterative update
 
 ```math
 H_{k+1}
 =
 e^{\theta_k A_k}
 H_k
-e^{-\theta_k A_k}.
+e^{-\theta_k A_k},
 ```
 
-Here, `A_k` is the selected anti-Hermitian fermionic generator and `theta_k` is the analytically optimized rotation angle.
+where `A_k` is an anti-Hermitian fermionic generator and `theta_k` is obtained by an analytic line search.
 
-### Important Settings
+Main features:
 
-Most user settings are located near the top of the script:
+- Loads a Hamiltonian from `hamiltonian_ST.pkl`.
+- Uses OpenFermion `FermionOperator` objects.
+- Uses a Hartree-Fock determinant as the reference state.
+- Builds a generator pool from Hamiltonian terms.
+- Includes single and double excitation generators.
+- Excludes generators acting only inside the chosen internal orbital set.
+- Selects the generator with the largest energy-gradient magnitude.
+- Applies the closed-form similarity transformation.
+- Optionally applies rank-based `n`-body truncation.
+- Saves the transformed Hamiltonian after each unitary step.
+
+Typical settings:
 
 ```python
 HAM_PKL = Path("hamiltonian_ST.pkl")
@@ -205,97 +189,66 @@ TRUNCATION_N_BODY = None
 TRUNCATION_NUMBER_CONSERVING = False
 ```
 
-### Output
-
-The script saves transformed Hamiltonians such as:
-
-```text
-hamiltonian_ST_minE_transformed-1.pkl
-hamiltonian_ST_minE_transformed-2.pkl
-...
-hamiltonian_ST_minE_transformed-200.pkl
-```
-
-This version is the cleanest baseline for studying the effect of the closed-form unitary transformations alone.
+Use this version to isolate the effect of the closed-form unitary transformations alone.
 
 ---
 
-## 3. CFU + LP-BLISS Transformation
+### 2. CFU + LP-BLISS: `cfu_lp_bliss.py`
 
-Suggested file:
+This version adds LP-BLISS compression to the baseline CFU workflow.
 
-```text
-cfu_lp_bliss.py
-```
-
-This version extends the baseline CFU transformation by adding **LP-BLISS** compression.
-
-LP-BLISS modifies the Hamiltonian by adding symmetry-vanishing operators that do not change the spectrum in the chosen electron-number sector but can reduce the LCU coefficient 1-norm.
-
-This version performs:
+The pipeline is:
 
 ```text
 Initial LP-BLISS shift
         |
         v
-Iterative CFU transformation
+CFU transformation step
         |
         v
-LP-BLISS shift after each unitary step
+Optional rank truncation
+        |
+        v
+LP-BLISS shift
+        |
+        v
+Next iteration
 ```
 
-### Main Additions Relative to Baseline CFU
-
-- Applies an initial BLISS shift to the input Hamiltonian.
-- Applies BLISS again after every CFU transformation.
-- Uses the number-operator symmetry channel:
+LP-BLISS shifts the Hamiltonian by an operator that vanishes in the target electron-number sector:
 
 ```math
-\hat{N} - N_e \hat{I}.
-```
-
-- Builds a BLISS operator basis from preimages of Hamiltonian terms.
-- Solves a sparse L1 linear program:
-
-```math
-\min_{\theta}
-\|
-\mathbf{b} - A\theta
-\|_1 .
-```
-
-- Enforces a **no-new-terms constraint**, so the BLISS shift does not increase Hamiltonian support.
-- Adds all Hartree-Fock single excitations to the generator pool so BLISS compression does not remove useful single-excitation directions.
-
-### BLISS Interpretation
-
-The BLISS shift has the form
-
-```math
-H
-\rightarrow
 H_{\mathrm{BLISS}}
 =
 H - O(\hat{N} - N_e \hat{I}).
 ```
 
-Because
+Since
 
 ```math
-(\hat{N} - N_e \hat{I}) |\Psi_{N_e}\rangle = 0
+(\hat{N} - N_e \hat{I}) |\Psi_{N_e}\rangle = 0,
 ```
 
-for states in the target `N_e`-electron sector, this shift preserves the target-sector spectrum while changing the Hamiltonian coefficients.
+this shift preserves the spectrum in the `N_e`-electron sector while changing the Hamiltonian coefficients.
 
-The purpose is to reduce the LCU 1-norm:
+The LP-BLISS optimization solves an L1 minimization problem of the form
 
 ```math
-\lambda
-=
-\sum_j |h_j|.
+\min_{\theta} \|\mathbf{b} - A\theta\|_1,
 ```
 
-### Important Settings
+with a support-preserving constraint so that no new Hamiltonian terms are introduced.
+
+Main additions relative to baseline CFU:
+
+- Initial BLISS shift before the CFU loop.
+- BLISS shift after every CFU transformation.
+- Number-operator symmetry channel `N - N_e I`.
+- Sparse L1 linear programming using SciPy HiGHS.
+- No-new-terms constraint.
+- Explicit Hartree-Fock singles added to the generator pool.
+
+Typical settings:
 
 ```python
 HAM_PKL = Path("hamiltonian_ST.pkl")
@@ -307,51 +260,13 @@ BLISS_TAIL_L1 = 0.0
 BLISS_EPS_HELP = 1e-12
 ```
 
-### Output
-
-Each saved Hamiltonian has gone through:
-
-```text
-CFU transformation
-        |
-        v
-optional rank truncation
-        |
-        v
-LP-BLISS shift
-```
-
-Example output files:
-
-```text
-hamiltonian_ST_minE_transformed-1.pkl
-hamiltonian_ST_minE_transformed-2.pkl
-...
-```
-
-This version is useful for studying how much LCU 1-norm reduction comes from symmetry-based BLISS compression in addition to CFU.
+Use this version to study how much LCU 1-norm reduction is gained by symmetry-based BLISS compression.
 
 ---
 
-## 4. CFU + LP-BLISS + Frobenius Truncation
+### 3. CFU + LP-BLISS + Frobenius Truncation: `cfu_lp_bliss_frobenius.py`
 
-Suggested file:
-
-```text
-cfu_lp_bliss_frobenius.py
-```
-
-This is the most complete transformation script.
-
-It includes:
-
-```text
-Closed-form unitary transformation
-+ LP-BLISS compression
-+ Frobenius-norm-controlled pruning
-```
-
-This version is designed to produce the most compact Hamiltonians while controlling the norm of the discarded operator.
+This is the most complete transformation pipeline. It includes CFU transformations, LP-BLISS compression, and Frobenius-norm-controlled pruning.
 
 The pipeline is:
 
@@ -359,10 +274,10 @@ The pipeline is:
 Initial LP-BLISS shift
         |
         v
-CFU transformation
+CFU transformation step
         |
         v
-optional rank truncation
+Optional rank truncation
         |
         v
 LP-BLISS shift
@@ -371,56 +286,24 @@ LP-BLISS shift
 Frobenius-norm truncation
         |
         v
-next iteration
+Next iteration
 ```
 
-### Main Additions Relative to CFU + LP-BLISS
-
-After each BLISS step, this version applies Frobenius-norm truncation:
+After each BLISS step, the script removes small terms while enforcing a bound on the discarded operator:
 
 ```math
-\| \Delta H \|_F \le \epsilon.
+\|\Delta H\|_F \le \epsilon.
 ```
 
-This removes small Hamiltonian terms while controlling the size of the discarded operator.
+Supported truncation modes:
 
-### Supported Frobenius Modes
+| Mode | Description |
+|---|---|
+| `none` | Disable Frobenius truncation. |
+| `linear` | Conservative triangle-inequality bound on dropped term norms. |
+| `quadratic` | Tighter estimate of the full dropped-operator Frobenius norm. |
 
-The truncation mode is controlled by:
-
-```python
-FROB_TRUNCATION_MODE = "quadratic"
-```
-
-Available modes are:
-
-```text
-none
-linear
-quadratic
-```
-
-### Linear Mode
-
-The linear mode uses a triangle-inequality bound on the sum of the Frobenius norms of the dropped terms:
-
-```math
-\sum_i \|h_i\|_F \le \epsilon.
-```
-
-This is conservative and simple.
-
-### Quadratic Mode
-
-The quadratic mode estimates the Frobenius norm of the full dropped operator more tightly:
-
-```math
-\| \Delta H \|_F^2.
-```
-
-This usually allows more aggressive pruning for the same error budget.
-
-### Important Settings
+Typical settings:
 
 ```python
 HAM_PKL = Path("hamiltonian_ST.pkl")
@@ -437,69 +320,17 @@ FROB_KEEP_CONSTANT = True
 FROB_ORDER_BY = "beta0_mass"
 ```
 
-### Output
-
-Each saved Hamiltonian has gone through:
-
-```text
-CFU transformation
-        |
-        v
-optional rank truncation
-        |
-        v
-LP-BLISS shift
-        |
-        v
-Frobenius-norm truncation
-```
-
-Example output files:
-
-```text
-hamiltonian_ST_minE_transformed-1.pkl
-hamiltonian_ST_minE_transformed-2.pkl
-...
-```
-
-This version is best suited for generating low-term-count, low-norm Hamiltonians for downstream quantum resource estimates.
+Use this version to generate the most compact Hamiltonians for downstream resource estimates.
 
 ---
 
-## 5. Downfolding / Active-Space Projection
+## Downfolding: `downfold.py`
 
-Suggested file:
+The downfolding script is used **after** one of the three transformation scripts.
 
-```text
-downfold.py
-```
+It loads a transformed full-space Hamiltonian and projects out selected external spin orbitals by contracting them with a fixed external Hartree-Fock state. The result is a smaller active-space Hamiltonian acting only on the internal spin orbitals.
 
-The downfolding script loads a previously transformed full-space Hamiltonian and projects out a chosen set of external spin orbitals by contracting them with a fixed Hartree-Fock occupation pattern.
-
-This produces a smaller active-space Hamiltonian acting only on the internal spin orbitals.
-
-The downfolding code can be used after **any** of the three transformation versions:
-
-```text
-Baseline CFU output
-        |
-        v
-downfold.py
-
-CFU + LP-BLISS output
-        |
-        v
-downfold.py
-
-CFU + LP-BLISS + Frobenius output
-        |
-        v
-downfold.py
-```
-
-### Purpose
-
-The transformation scripts generate full-space transformed Hamiltonians. The downfolding script then constructs an active-space effective Hamiltonian by evaluating the external-space expectation value:
+The downfolding operation is
 
 ```math
 H_{\mathrm{eff}}
@@ -509,11 +340,7 @@ H_{\mathrm{transformed}}
 | \phi_{\mathrm{ext}}^0 \rangle_{\mathrm{ext}}.
 ```
 
-The resulting Hamiltonian acts only on the internal spin orbitals.
-
-### Example Orbital Partition
-
-The downfolding script uses the following settings:
+### Example orbital partition
 
 ```python
 downfold_n_electrons = 2
@@ -525,70 +352,37 @@ INTERNAL_ORBS_DF = {2, 3, 4, 5}
 
 This means:
 
-```text
-External spin orbitals projected out:
-    {0, 1, 6, 7}
-
-Occupied external HF orbitals:
-    {0, 1}
-
-Internal active spin orbitals retained:
-    {2, 3, 4, 5}
-```
-
-The external orbitals are contracted with the Hartree-Fock occupation pattern, while the internal orbitals remain as the active space.
+| Quantity | Value | Meaning |
+|---|---|---|
+| `EXTERNAL_ORBS_DF` | `{0, 1, 6, 7}` | Spin orbitals projected out. |
+| `HF_EXTERNAL_OCC` | `[0, 1]` | Occupied external orbitals in the HF reference. |
+| `INTERNAL_ORBS_DF` | `{2, 3, 4, 5}` | Spin orbitals retained in the active space. |
 
 ### Input
 
-By default, the script loads a transformed Hamiltonian such as:
+Set the transformed Hamiltonian filename inside `downfold.py`:
 
 ```python
 filename = "hamiltonian_ST_minE_transformed-200.pkl"
 ```
 
-This file should be generated by one of the three transformation scripts.
-
-For example:
-
-```text
-hamiltonian_ST_minE_transformed-200.pkl
-```
-
-may come from:
+This file may come from any transformation pipeline:
 
 ```text
 cfu_transform.py
-```
-
-or
-
-```text
 cfu_lp_bliss.py
-```
-
-or
-
-```text
 cfu_lp_bliss_frobenius.py
 ```
 
 ### Output
 
-The script saves the downfolded Hamiltonian as:
+The script saves the active-space Hamiltonian as:
 
 ```text
 downfolded_hamiltonian.pkl
 ```
 
-The output is a renumbered OpenFermion `FermionOperator` acting only on the internal spin orbitals.
-
-For example, if
-
-```python
-INTERNAL_ORBS_DF = {2, 3, 4, 5}
-```
-
-then the output Hamiltonian is renumbered as:
+The output is renumbered so that the internal orbitals become contiguous. For example,
 
 ```text
 2 -> 0
@@ -597,29 +391,18 @@ then the output Hamiltonian is renumbered as:
 5 -> 3
 ```
 
-Thus, the final downfolded Hamiltonian acts on four spin orbitals labeled:
+so a Hamiltonian on internal spin orbitals `{2, 3, 4, 5}` becomes a Hamiltonian on local spin orbitals `{0, 1, 2, 3}`.
 
-```text
-{0, 1, 2, 3}
-```
+### Optional diagonalization
 
-### Optional Diagonalization
-
-The script can optionally diagonalize the downfolded Hamiltonian in a fixed electron-number sector.
-
-Set:
+To diagonalize the downfolded Hamiltonian in a fixed electron-number sector, set:
 
 ```python
 diagonalize_downfold = True
-```
-
-and choose the number of active-space electrons:
-
-```python
 downfold_n_electrons = 2
 ```
 
-The script will print:
+The script then prints:
 
 ```text
 Ground-state energy
@@ -627,51 +410,31 @@ Maximum energy
 Spectral range
 ```
 
-This is useful for checking the spectrum of the downfolded Hamiltonian.
-
 ---
 
-## Full Recommended Workflow
+## Recommended Workflow
 
-### Step 1: Prepare the input Hamiltonian
+### 1. Prepare the input Hamiltonian
 
-The input should be an OpenFermion `FermionOperator` saved as:
+Save the full-space OpenFermion Hamiltonian as:
 
 ```text
 hamiltonian_ST.pkl
 ```
 
-### Step 2: Choose one transformation pipeline
+### 2. Run one transformation pipeline
 
-Use one of the three transformation scripts.
-
-#### Option A: Baseline CFU
+Choose one of:
 
 ```bash
 python cfu_transform.py
-```
-
-This applies only the closed-form unitary transformations.
-
-#### Option B: CFU + LP-BLISS
-
-```bash
 python cfu_lp_bliss.py
-```
-
-This applies closed-form unitary transformations and LP-BLISS compression.
-
-#### Option C: CFU + LP-BLISS + Frobenius truncation
-
-```bash
 python cfu_lp_bliss_frobenius.py
 ```
 
-This applies closed-form unitary transformations, LP-BLISS compression, and Frobenius-norm-controlled pruning.
+### 3. Select the transformed Hamiltonian
 
-### Step 3: Select the transformed Hamiltonian
-
-Choose one of the generated transformed Hamiltonians, for example:
+For example:
 
 ```text
 hamiltonian_ST_minE_transformed-200.pkl
@@ -683,13 +446,15 @@ or, for shorter runs:
 hamiltonian_ST_minE_transformed-11.pkl
 ```
 
-Update the filename in the downfolding script:
+### 4. Update `downfold.py`
+
+Edit:
 
 ```python
 filename = "hamiltonian_ST_minE_transformed-200.pkl"
 ```
 
-### Step 4: Run the downfolding script
+### 5. Run downfolding
 
 ```bash
 python downfold.py
@@ -701,7 +466,7 @@ This generates:
 downfolded_hamiltonian.pkl
 ```
 
-### Step 5: Use the downfolded Hamiltonian
+### 6. Use the active-space Hamiltonian
 
 The final downfolded Hamiltonian can be used for:
 
@@ -711,36 +476,6 @@ The final downfolded Hamiltonian can be used for:
 - LCU 1-norm analysis,
 - QPE cost estimates,
 - comparison with FCI or CASCI benchmarks.
-
----
-
-## File Summary
-
-```text
-paper.tex
-    Manuscript and theory description.
-
-cfu_transform.py
-    Baseline closed-form unitary transformation script.
-
-cfu_lp_bliss.py
-    Closed-form unitary transformation with LP-BLISS compression.
-
-cfu_lp_bliss_frobenius.py
-    Closed-form unitary transformation with LP-BLISS and Frobenius-norm pruning.
-
-downfold.py
-    Projects a transformed full-space Hamiltonian into an active-space Hamiltonian.
-
-hamiltonian_ST.pkl
-    Input full-space fermionic Hamiltonian.
-
-hamiltonian_ST_minE_transformed-k.pkl
-    Transformed Hamiltonian after k unitary steps.
-
-downfolded_hamiltonian.pkl
-    Final active-space downfolded Hamiltonian.
-```
 
 ---
 
@@ -760,13 +495,13 @@ pip install pyscf openfermionpyscf
 
 ---
 
-## Notes on the Implementation
+## Implementation Notes
 
 This is a research codebase intended for method development and numerical experimentation.
 
-The scripts prioritize transparency and direct control over packaging. Most user options are placed near the top of each script.
+The scripts prioritize transparency and direct control over packaging. Most user options are defined near the top of each script.
 
-The implementation currently uses:
+The implementation uses:
 
 - OpenFermion `FermionOperator` objects,
 - sparse matrix-free expectation values,
