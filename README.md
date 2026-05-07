@@ -17,7 +17,7 @@ This repository explores ways to compress fermionic Hamiltonians before quantum 
 
 1. **Closed-form unitary transformations** to reduce undesired couplings.
 2. **LP-BLISS symmetry shifts** to reduce the Hamiltonian 1-norm without changing the target electron-number-sector spectrum.
-3. **Frobenius-norm pruning** to remove small terms with controlled discarded norm.
+3. **Majorana-basis Frobenius-norm pruning** to remove small terms with controlled discarded norm.
 4. **Active-space downfolding** to project the transformed Hamiltonian into a smaller internal orbital space.
 
 The final goal is to obtain a compact active-space Hamiltonian with reduced term count, reduced coefficient 1-norm, and preserved physically relevant spectral information.
@@ -36,7 +36,7 @@ Run **one** of the following transformation pipelines:
 |---|---|---|
 | A | `cfu_transform.py` | Baseline closed-form unitary transformation. |
 | B | `cfu_lp_bliss.py` | CFU transformation plus LP-BLISS compression. |
-| C | `cfu_lp_bliss_frobenius.py` | CFU plus LP-BLISS plus Frobenius-norm pruning. |
+| C | `cfu_lp_bliss_frobenius.py` | CFU plus LP-BLISS plus Majorana-basis Frobenius-norm pruning. |
 
 For example:
 
@@ -106,7 +106,7 @@ Active-space effective Hamiltonian
 | `paper.tex` | Manuscript and theory draft. |
 | `cfu_transform.py` | Baseline CFU transformation. |
 | `cfu_lp_bliss.py` | CFU transformation with LP-BLISS compression. |
-| `cfu_lp_bliss_frobenius.py` | CFU transformation with LP-BLISS and Frobenius-norm pruning. |
+| `cfu_lp_bliss_frobenius.py` | CFU transformation with LP-BLISS and Majorana-basis Frobenius-norm pruning. |
 | `downfold.py` | Projects a transformed full-space Hamiltonian into an active-space Hamiltonian. |
 | `hamiltonian_ST.pkl` | Input full-space OpenFermion `FermionOperator`. |
 | `hamiltonian_ST_minE_transformed-k.pkl` | Transformed Hamiltonian after `k` unitary steps. |
@@ -145,7 +145,7 @@ The three transformation scripts form a hierarchy:
 ```text
 Baseline CFU
     -> CFU + LP-BLISS
-        -> CFU + LP-BLISS + Frobenius truncation
+        -> CFU + LP-BLISS + Majorana-basis Frobenius truncation
 ```
 
 ### 1. Baseline CFU: `cfu_transform.py`
@@ -264,9 +264,9 @@ Use this version to study how much LCU 1-norm reduction is gained by symmetry-ba
 
 ---
 
-### 3. CFU + LP-BLISS + Frobenius Truncation: `cfu_lp_bliss_frobenius.py`
+### 3. CFU + LP-BLISS + Majorana-Basis Frobenius Truncation: `cfu_lp_bliss_frobenius.py`
 
-This is the most complete transformation pipeline. It includes CFU transformations, LP-BLISS compression, and Frobenius-norm-controlled pruning.
+This is the most complete transformation pipeline. It includes CFU transformations, LP-BLISS compression, and **Majorana-basis Frobenius-norm-controlled pruning**.
 
 The pipeline is:
 
@@ -283,7 +283,7 @@ Optional rank truncation
 LP-BLISS shift
         |
         v
-Frobenius-norm truncation
+Majorana-basis Frobenius-norm truncation
         |
         v
 Next iteration
@@ -295,13 +295,15 @@ After each BLISS step, the script removes small terms while enforcing a bound on
 \|\Delta H\|_F \le \epsilon.
 ```
 
+The Frobenius truncation is evaluated in a **Majorana-operator representation**. In this representation, fermionic terms are converted into Majorana strings, and the discarded Hamiltonian is bounded using the Hilbert--Schmidt/Frobenius norm of the resulting Majorana expansion. This gives a physically meaningful operator-norm control rather than simply dropping terms by coefficient magnitude.
+
 Supported truncation modes:
 
 | Mode | Description |
 |---|---|
-| `none` | Disable Frobenius truncation. |
-| `linear` | Conservative triangle-inequality bound on dropped term norms. |
-| `quadratic` | Tighter estimate of the full dropped-operator Frobenius norm. |
+| `none` | Disable Majorana-basis Frobenius truncation. |
+| `linear` | Conservative triangle-inequality bound using the Frobenius norms of dropped Majorana-expanded terms. |
+| `quadratic` | Tighter estimate of the full dropped operator in the Majorana/Frobenius representation. |
 
 Typical settings:
 
@@ -320,7 +322,7 @@ FROB_KEEP_CONSTANT = True
 FROB_ORDER_BY = "beta0_mass"
 ```
 
-Use this version to generate the most compact Hamiltonians for downstream resource estimates.
+Use this version to generate the most compact Hamiltonians for downstream resource estimates while controlling the discarded operator in the Majorana-basis Frobenius norm.
 
 ---
 
@@ -508,7 +510,7 @@ The implementation uses:
 - analytic single-generator line search,
 - joblib-based parallelism,
 - SciPy linear programming for BLISS,
-- optional Frobenius-norm pruning,
+- optional Majorana-basis Frobenius-norm pruning,
 - optional sparse diagonalization for downfolded Hamiltonians.
 
 ---
