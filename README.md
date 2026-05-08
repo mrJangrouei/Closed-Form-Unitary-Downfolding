@@ -4,7 +4,7 @@ This repository contains a compact research implementation of **Closed-Form Unit
 
 The code accompanies:
 
-**M. R. Jangrouei**  
+**M. R. Jangrouei, A. Izmaylov**  
 *Closed-Form Unitary Downfolding for Resource-Efficient Fermionic Hamiltonian Simulation on Quantum Computers.*
 
 ---
@@ -131,7 +131,7 @@ H_{\mathrm{eff}}
 =
 \langle \phi_{\mathrm{ext}}^0 |
 \bar{H}
-| \phi_{\mathrm{ext}}^0 \rangle_{\mathrm{ext}}.
+| \phi_{\mathrm{ext}}^0 \rangle.
 ```
 
 The resulting `H_eff` acts only on the selected internal spin orbitals.
@@ -339,7 +339,7 @@ H_{\mathrm{eff}}
 =
 \langle \phi_{\mathrm{ext}}^0 |
 H_{\mathrm{transformed}}
-| \phi_{\mathrm{ext}}^0 \rangle_{\mathrm{ext}}.
+| \phi_{\mathrm{ext}}^0 \rangle.
 ```
 
 ### Example orbital partition
